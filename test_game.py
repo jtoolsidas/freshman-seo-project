@@ -57,26 +57,26 @@ clouds = [
 
 # Math equations
 QUESTIONS = [
-    ("x + 7 = 15",         8,              [6, 10, 22]),
-    ("3x = 27",            9,              [6, 12, 81]),
-    ("2x + 5 = 19",        7,              [4, 12, 6]),
-    ("5x - 8 = 17",        5,              [3, 9, 7]),
-    ("4(x+2) = 28",        5,              [7, 3, 9]),
-    ("3x-7 = 2x+9",       16,             [2, 8, 12]),
-    ("2(x-4)+3 = 11",      6,              [2, 4, 8]),
-    ("5x+2 = 3x+18",       8,              [4, 10, 16]),
-    ("x^2 = 49",           7,              [-7, 14, 24]),
-    ("x^2 - 16 = 0",       4,              [-4, 8, 2]),
-    ("x^2+7x+12=0",       -3,             [-4, 3, 4]),
-    ("2x^2 - 8x = 0",      4,              [0, 2, 8]),
-    ("x^2-5x+6=0",         2,              [3, 1, 6]),
-    ("(x+3)/2 = 7/2",      4,              [2, 7, 1]),
-    ("|x - 4| = 9",        13,             [-5, 5, 4]),
-    ("|2x + 1| = 7",        3,              [-4, 4, 6]),
-    ("x^2-2x-15=0",        5,              [-3, 3, 7]),
-    ("x/(x-2) = 3",         3,              [1, 6, -3]),
-    ("x + 5 = x - 1",  "No solution", ["x=0", "x=5", "x=-5"]),
-    ("(2x-1)/3=(x+5)/2",  17,             [7, 11, 3]),
+("x + 2 = 5",          3,              [1, 4, 7]),
+("x - 3 = 4",          7,              [5, 8, 2]),
+("2x = 10",            5,              [2, 6, 8]),
+("x + 4 = 9",          5,              [3, 7, 6]),
+("3x = 12",            4,              [2, 5, 8]),
+("x - 1 = 6",          7,              [4, 8, 9]),
+("x + 1 = 8",          7,              [5, 6, 9]),
+("2x + 2 = 8",         3,              [2, 4, 5]),
+("x^2 = 16",           4,              [2, 6, 8]),
+("x^2 = 9",            3,              [1, 5, 7]),
+("x^2 - 4 = 0",        2,              [4, 6, 8]),
+("x^2 - 36 = 0",    6,              [2, 3, 5]),
+("(x+2)/2 = 3",        4,              [2, 5, 6]),
+("|x - 2| = 3",         5,              [1, 3, 6]),
+("|x + 1| = 4",         3,              [2, 5, 7]),
+("x^2 - 9 = 0",        3,              [1, 4, 6]),
+("x/2 = 4",            8,              [2, 6, 10]),
+("x + 3 = 7",          4,              [2, 5, 6]),
+("x - 2 = -2",          0,           [4, 1, 3]),
+("x + 1 = 2",          1,              [3, 4, 5]),
 ]
 
 font_eq  = pygame.font.SysFont("Arial", 20, bold=True)
@@ -183,13 +183,15 @@ class AnswerChoice:
 
     def draw(self, surface):
         r = self.get_rect()
-        mx, my = pygame.mouse.get_pos()
-        col = LIGHT_BLUE if r.collidepoint(mx, my) else (50, 50, 120)
-        pygame.draw.rect(surface, col,   r, border_radius=6)
+
+        # Always keep same color (no hover effect)
+        col = (50, 50, 120)
+
+        pygame.draw.rect(surface, col, r, border_radius=6)
         pygame.draw.rect(surface, WHITE, r, 1, border_radius=6)
+
         lbl = font_ans.render(str(self.value), True, WHITE)
         surface.blit(lbl, lbl.get_rect(center=r.center))
-
 
 def draw_cloud(surface, x, y, scale=1):
     """Draw a fluffy cloud."""
@@ -293,15 +295,6 @@ while running:
         if event.type == pygame.QUIT:
             running = False
 
-        # Handle mouse click on an answer button
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            mx, my = pygame.mouse.get_pos()
-            for eq in equations:
-                if eq.active and not eq.answered and eq.flash == 0:
-                    for ch in eq.choices:
-                        if ch.get_rect().collidepoint(mx, my):
-                            eq.check_answer(ch.value)
-
     # Keyboard input
     keys = pygame.key.get_pressed()
 
@@ -329,6 +322,15 @@ while running:
         player_vel_y = 0
         on_ground = True
 
+    # Player hitbox
+    player_rect = pygame.Rect(
+        int(player_x - 15),
+        int(player_y - 65),
+        30,
+        65
+    )
+    
+
     # walking animation
     walk_frame += 0.15
 
@@ -344,6 +346,14 @@ while running:
     # Update all equations
     for eq in equations:
         eq.update()
+
+    # Check if player touches an answer button
+    for eq in equations:
+        if eq.active and not eq.answered and eq.flash == 0:
+            for ch in eq.choices:
+                if player_rect.colliderect(ch.get_rect()):
+                    eq.check_answer(ch.value)
+                    break
 
     # Move clouds
     for cloud in clouds:
