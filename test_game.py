@@ -59,26 +59,26 @@ clouds = [
 
 # Math equations
 QUESTIONS = [
-    ("x + 7 = 15",         8,              [6, 10, 22]),
-    ("3x = 27",            9,              [6, 12, 81]),
-    ("2x + 5 = 19",        7,              [4, 12, 6]),
-    ("5x - 8 = 17",        5,              [3, 9, 7]),
-    ("4(x+2) = 28",        5,              [7, 3, 9]),
-    ("3x-7 = 2x+9",       16,             [2, 8, 12]),
-    ("2(x-4)+3 = 11",      6,              [2, 4, 8]),
-    ("5x+2 = 3x+18",       8,              [4, 10, 16]),
-    ("x^2 = 49",           7,              [-7, 14, 24]),
-    ("x^2 - 16 = 0",       4,              [-4, 8, 2]),
-    ("x^2+7x+12=0",       -3,             [-4, 3, 4]),
-    ("2x^2 - 8x = 0",      4,              [0, 2, 8]),
-    ("x^2-5x+6=0",         2,              [3, 1, 6]),
-    ("(x+3)/2 = 7/2",      4,              [2, 7, 1]),
-    ("|x - 4| = 9",        13,             [-5, 5, 4]),
-    ("|2x + 1| = 7",        3,              [-4, 4, 6]),
-    ("x^2-2x-15=0",        5,              [-3, 3, 7]),
-    ("x/(x-2) = 3",         3,              [1, 6, -3]),
-    ("x + 5 = x - 1",  "No solution", ["x=0", "x=5", "x=-5"]),
-    ("(2x-1)/3=(x+5)/2",  17,             [7, 11, 3]),
+    ("x + 2 = 5", 3, [1, 4, 6]),
+    ("x - 4 = 3", 7, [5, 8, 9]),
+    ("2x = 8", 4, [2, 6, 8]),
+    ("x + 6 = 10", 4, [2, 5, 7]),
+    ("x - 1 = 6", 7, [4, 5, 8]),
+    ("3x = 15", 5, [3, 6, 9]),
+    ("x + 9 = 12", 3, [1, 5, 7]),
+    ("x - 2 = 4", 6, [3, 5, 7]),
+    ("5x = 20", 4, [2, 5, 6]),
+    ("x + 8 = 15", 7, [4, 6, 8]),
+    ("x - 5 = 2", 7, [4, 6, 9]),
+    ("2x = 12", 6, [3, 4, 8]),
+    ("x + 1 = 9", 8, [5, 6, 7]),
+    ("x - 3 = 5", 8, [4, 6, 9]),
+    ("4x = 16", 4, [2, 6, 8]),
+    ("x + 4 = 11", 7, [5, 6, 9]),
+    ("x - 6 = 1", 7, [3, 5, 8]),
+    ("x + 3 = 8", 5, [2, 4, 6]),
+    ("10x = 50", 5, [2, 4, 10]),
+    ("x - 7 = 2", 9, [5, 6, 8]),
 ]
 
 font_eq  = pygame.font.SysFont("Arial", 20, bold=True)
@@ -101,23 +101,36 @@ class FallingEquation:
     def _respawn(self):
         entry = random.choice(QUESTIONS)
         self.text, self.answer, wrongs = entry
-        self.x     = random.randint(self.WIDTH // 2 + 10,
-                                    SCREEN_WIDTH - self.WIDTH // 2 - 10)
-        self.y     = -self.HEIGHT
+
+        bw, bh = 88, 32
+        spacing = 4
+        total_choices_width = 4 * bw + 3 * spacing
+        safe_margin = 20
+
+        # Keep answers fully on screen
+        min_x = total_choices_width // 2 + safe_margin
+        max_x = SCREEN_WIDTH - total_choices_width // 2 - safe_margin
+
+        self.x = random.randint(min_x, max_x)
+        self.y = -self.HEIGHT
         self.speed = random.uniform(0.6, 0.8)
-        self.active   = True
+
+        self.active = True
         self.answered = False
-        self.flash    = 0
+        self.flash = 0
         self.flash_col = WHITE
 
         options = wrongs[:3] + [self.answer]
         random.shuffle(options)
+
         self.choices = []
-        bw, bh = 88, 32
+
         for i, val in enumerate(options):
-            bx = self.x - self.WIDTH // 2 + i * (bw + 4)
+            bx = self.x - total_choices_width // 2 + i * (bw + spacing)
             by = self.y + self.HEIGHT + 4
-            self.choices.append(AnswerChoice(bx, by, bw, bh, val))
+            self.choices.append(
+                AnswerChoice(bx, by, bw, bh, val)
+            )
 
     def update(self):
         if not self.active:
@@ -138,25 +151,46 @@ class FallingEquation:
             self._miss()
 
     def _miss(self):
-        global lives
+        global lives, timer_seconds, game_over
+
         lives -= 1
-        self.answered  = True
-        self.flash     = 80
+        timer_seconds -= 5
+        timer_seconds = max(0, timer_seconds)
+
+        if lives <= 0:
+            game_over = True
+            return
+
+        self.answered = True
+        self.flash = 80
         self.flash_col = WRONG_RED
 
     def check_answer(self, chosen):
-        global score, lives, timer_seconds
+        global score, lives, timer_seconds, game_over, game_won
+
         self.answered = True
+
         if chosen == self.answer:
-            score         += 10
-            timer_seconds += 5             # +5 seconds for correct answer
+            score += 10
+            timer_seconds += 5
             self.flash_col = CORRECT_GREEN
+
+            if score >= 100:
+                game_won = True
+
         else:
-            lives         -= 1
-            timer_seconds -= 5             # -5 seconds for wrong answer
-            timer_seconds  = max(0, timer_seconds)  # can't go below 0
+            lives -= 1
+            timer_seconds -= 5
+            timer_seconds = max(0, timer_seconds)
+
+            if lives <= 0:
+                game_over = True
+                return
+
             self.flash_col = WRONG_RED
+
         self.flash = 80
+
 
     def draw(self, surface):
         if not self.active:
@@ -280,16 +314,69 @@ def draw_character(surface, x, y, facing, walk_frame, on_ground):
 
 # Equation spawn setup
 MAX_EQUATIONS  = 2
-SPAWN_INTERVAL = 600
+SPAWN_INTERVAL = 900
 spawn_timer    = 0
 equations      = [FallingEquation() for _ in range(MAX_EQUATIONS)]
 
 # Only the first starts active & others wait for the spawn timer
 for i in range(1, MAX_EQUATIONS):
     equations[i].active = False
+# Fonts for instruction screen
+title_font = pygame.font.SysFont("Arial", 42, bold=True)
+instruction_font = pygame.font.SysFont("Arial", 26)
+small_font = pygame.font.SysFont("Arial", 22)
+
+# Instruction screen
+show_instructions = True
+
+while show_instructions:
+    screen.fill(BLUE_SKY)
+
+    # Title
+    title_text = title_font.render("How to Play", True, DARK_BLUE)
+    screen.blit(title_text, title_text.get_rect(center=(SCREEN_WIDTH // 2, 80)))
+
+    instructions = [
+        "You start with a 2 minute timer.",
+        "Getting a question RIGHT adds time.",
+        "Getting a question WRONG removes time.",
+        "Missing a question also removes time.",
+        "You have 3 lives.",
+        "Wrong answers remove a life.",
+        "Answer questions by jumping to",
+        "or standing underneath the correct answer choice.",
+        "Reach 100 points to win!"
+    ]
+
+    y_pos = 130
+    for line in instructions:
+        text = instruction_font.render(line, True, BLACK)
+        screen.blit(text, text.get_rect(center=(SCREEN_WIDTH // 2, y_pos)))
+        y_pos += 40
+
+    start_text = small_font.render(
+        "Press ENTER to Start", True, (220, 50, 50)
+    )
+    screen.blit(
+        start_text,
+        start_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT - 100))
+    )
+
+    pygame.display.flip()
+
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
+
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_RETURN:
+                show_instructions = False
 
 clock = pygame.time.Clock()
 running = True
+game_over = False
+game_won = False
 
 while running:
     # Tick the countdown timer using milliseconds since last frame
@@ -300,12 +387,15 @@ while running:
         timer_seconds -= 1
         if timer_seconds <= 0:
             timer_seconds = 0
+            game_over = True
             running = False  # game ends when timer hits 0
+            
 
     # Events
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+            
 
 
 
@@ -354,14 +444,52 @@ while running:
     spawn_timer += 1
     if spawn_timer >= SPAWN_INTERVAL:
         spawn_timer = 0
+
         for eq in equations:
             if not eq.active:
-                eq._respawn()
+
+                placed = False
+                attempts = 0
+
+                while not placed and attempts < 50:
+                    eq._respawn()
+                    placed = True
+
+                    # Create rectangle for new equation + answer buttons
+                    eq_rect = pygame.Rect(
+                        eq.x - 180,
+                        eq.y,
+                        360,
+                        90
+                    )
+
+                    for other in equations:
+                        if other is not eq and other.active:
+
+                            other_rect = pygame.Rect(
+                                other.x - 180,
+                                other.y,
+                                360,
+                                90
+                            )
+
+                            # Prevent touching or overlap
+                            expanded_other = other_rect.inflate(80, 60)
+
+                            if eq_rect.colliderect(expanded_other):
+                                placed = False
+                                break
+
+                    attempts += 1
+
                 break
 
     # Update all equations
     for eq in equations:
         eq.update()
+        if game_over or game_won:
+            running = False
+
 
     # Move clouds
     for cloud in clouds:
@@ -402,6 +530,120 @@ while running:
 
     pygame.display.flip()
     clock.tick(60)
+
+# ---------------- WIN SCREEN ----------------
+while game_won:
+    screen.fill((30, 30, 30))
+
+    title = title_font.render("YOU WIN!", True, CORRECT_GREEN)
+
+    score_text = instruction_font.render(
+        f"Final Score: {score}", True, WHITE
+    )
+
+    restart_text = small_font.render(
+        "Press R to Play Again", True, GOLD
+    )
+
+    quit_text = small_font.render(
+        "Press Q to Quit", True, WHITE
+    )
+
+    screen.blit(title, title.get_rect(center=(SCREEN_WIDTH // 2, 180)))
+    screen.blit(score_text, score_text.get_rect(center=(SCREEN_WIDTH // 2, 260)))
+    screen.blit(restart_text, restart_text.get_rect(center=(SCREEN_WIDTH // 2, 340)))
+    screen.blit(quit_text, quit_text.get_rect(center=(SCREEN_WIDTH // 2, 390)))
+
+    pygame.display.flip()
+
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
+
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_q:
+                pygame.quit()
+                sys.exit()
+
+            if event.key == pygame.K_r:
+                score = 0
+                lives = 3
+                timer_seconds = 120
+                timer_ms = 0
+
+                player_x = 100
+                player_y = float(ground_level)
+                player_vel_y = 0
+                on_ground = True
+
+                equations = [FallingEquation() for _ in range(MAX_EQUATIONS)]
+
+                for i in range(1, MAX_EQUATIONS):
+                    equations[i].active = False
+
+                spawn_timer = 0
+
+                running = True
+                game_won = False
+
+            
+# ---------------- GAME OVER SCREEN ----------------
+while game_over:
+    screen.fill((30, 30, 30))
+
+    title = title_font.render("GAME OVER", True, WRONG_RED)
+    score_text = instruction_font.render(
+        f"Final Score: {score}", True, WHITE
+    )
+
+    restart_text = small_font.render(
+        "Press R to Restart", True, GOLD
+    )
+
+    quit_text = small_font.render(
+        "Press Q to Quit", True, WHITE
+    )
+
+    screen.blit(title, title.get_rect(center=(SCREEN_WIDTH // 2, 180)))
+    screen.blit(score_text, score_text.get_rect(center=(SCREEN_WIDTH // 2, 260)))
+    screen.blit(restart_text, restart_text.get_rect(center=(SCREEN_WIDTH // 2, 340)))
+    screen.blit(quit_text, quit_text.get_rect(center=(SCREEN_WIDTH // 2, 390)))
+
+    pygame.display.flip()
+
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
+
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_q:
+                pygame.quit()
+                sys.exit()
+
+            if event.key == pygame.K_r:
+                # Reset game state
+                score = 0
+                lives = 3
+                timer_seconds = 120
+                timer_ms = 0
+
+                player_x = 100
+                player_y = float(ground_level)
+                player_vel_y = 0
+                on_ground = True
+
+                equations = [FallingEquation() for _ in range(MAX_EQUATIONS)]
+
+                for i in range(1, MAX_EQUATIONS):
+                    equations[i].active = False
+
+                spawn_timer = 0
+
+                running = True
+                game_over = False
+                game_won = False
 
 pygame.quit()
 sys.exit() 
