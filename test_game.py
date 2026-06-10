@@ -104,7 +104,7 @@ class FallingEquation:
         self.x     = random.randint(self.WIDTH // 2 + 10,
                                     SCREEN_WIDTH - self.WIDTH // 2 - 10)
         self.y     = -self.HEIGHT
-        self.speed = random.uniform(0.7, 0.9)
+        self.speed = random.uniform(0.6, 0.8)
         self.active   = True
         self.answered = False
         self.flash    = 0
@@ -188,8 +188,7 @@ class AnswerChoice:
 
     def draw(self, surface):
         r = self.get_rect()
-        mx, my = pygame.mouse.get_pos()
-        col = LIGHT_BLUE if r.collidepoint(mx, my) else (50, 50, 120)
+        col = (50, 50, 120)
         pygame.draw.rect(surface, col,   r, border_radius=6)
         pygame.draw.rect(surface, WHITE, r, 1, border_radius=6)
         lbl = font_ans.render(str(self.value), True, WHITE)
@@ -308,14 +307,7 @@ while running:
         if event.type == pygame.QUIT:
             running = False
 
-        # Handle mouse click on an answer button
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            mx, my = pygame.mouse.get_pos()
-            for eq in equations:
-                if eq.active and not eq.answered and eq.flash == 0:
-                    for ch in eq.choices:
-                        if ch.get_rect().collidepoint(mx, my):
-                            eq.check_answer(ch.value)
+
 
     # Keyboard input
     keys = pygame.key.get_pressed()
@@ -343,6 +335,17 @@ while running:
         player_y = ground_level
         player_vel_y = 0
         on_ground = True
+
+    # Player hitbox
+    player_rect = pygame.Rect(int(player_x - 15), int(player_y - 65), 30, 65)
+
+    # Check if player touches an answer button by jumping into it
+    for eq in equations:
+        if eq.active and not eq.answered and eq.flash == 0:
+            for ch in eq.choices:
+                if player_rect.colliderect(ch.get_rect()):
+                    eq.check_answer(ch.value)
+                    break
 
     # Walking animation
     walk_frame += 0.15
@@ -383,11 +386,11 @@ while running:
     # Draw character
     draw_character(screen, player_x, player_y, facing, walk_frame, on_ground)
 
-    # score, timer, lives
+    # HUD — score, timer, lives
     mins = timer_seconds // 60
     secs = timer_seconds % 60
     timer_str   = f"{mins}:{secs:02d}"
-    timer_color = (220, 50, 50) if timer_seconds <= 30 else GOLD  
+    timer_color = (220, 50, 50) if timer_seconds <= 30 else GOLD  # red when under 30s
 
     score_txt = font_ui.render(f"Score: {score}", True, GOLD)
     timer_txt = font_ui.render(timer_str, True, timer_color)
@@ -401,4 +404,4 @@ while running:
     clock.tick(60)
 
 pygame.quit()
-sys.exit()
+sys.exit() 
