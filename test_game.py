@@ -4,6 +4,7 @@ import math
 import random
 
 pygame.init()
+pygame.mixer.init()
 
 # Screen setup
 SCREEN_WIDTH = 800
@@ -25,6 +26,13 @@ BLACK       = (0, 0, 0)
 LIGHT_BLUE  = (173, 216, 230)
 CORRECT_GREEN = (50, 200, 80)
 WRONG_RED     = (220, 50, 50)
+
+correct_sound = pygame.mixer.Sound("correct.mp3")
+wrong_sound = pygame.mixer.Sound("wrong.mp3")
+
+# Optional volume (0.0 to 1.0)
+correct_sound.set_volume(0.5)
+wrong_sound.set_volume(0.5)
 
 # Grass setup (moved down)
 GRASS_HEIGHT = 150
@@ -153,6 +161,7 @@ class FallingEquation:
     def _miss(self):
         global lives, timer_seconds, game_over
 
+        wrong_sound.play()
         lives -= 1
         timer_seconds -= 5
         timer_seconds = max(0, timer_seconds)
@@ -171,6 +180,7 @@ class FallingEquation:
         self.answered = True
 
         if chosen == self.answer:
+            correct_sound.play()
             score += 10
             timer_seconds += 5
             self.flash_col = CORRECT_GREEN
@@ -179,6 +189,7 @@ class FallingEquation:
                 game_won = True
 
         else:
+            wrong_sound.play()
             lives -= 1
             timer_seconds -= 5
             timer_seconds = max(0, timer_seconds)
